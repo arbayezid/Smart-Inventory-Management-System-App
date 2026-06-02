@@ -37,14 +37,14 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> _loadUser() async {
     final token = await storage.read(key: 'token');
     final userStr = await storage.read(key: 'userInfo');
-    
+
     if (token == 'fake_token_for_testing') {
       await storage.delete(key: 'token');
       await storage.delete(key: 'userInfo');
       state = AuthState(isLoading: false);
       return;
     }
-    
+
     if (token != null && userStr != null) {
       try {
         final user = UserModel.fromJson(jsonDecode(userStr));
@@ -54,7 +54,7 @@ class AuthNotifier extends Notifier<AuthState> {
         // ignore and fallback to unauthenticated state
       }
     }
-    
+
     state = AuthState(isLoading: false);
   }
 
@@ -67,7 +67,8 @@ class AuthNotifier extends Notifier<AuthState> {
   }) async {
     final dio = Dio(
       BaseOptions(
-        baseUrl: kIsWeb ? 'http://localhost:5000/api' : 'http://10.0.2.2:5000/api',
+        baseUrl:
+            'https://smart-inventory-management-system-backend.onrender.com/api',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
@@ -105,7 +106,9 @@ class AuthNotifier extends Notifier<AuthState> {
         final message = data is Map ? data['message'] : null;
         throw Exception(message ?? 'Shop request pending or restricted.');
       }
-      throw Exception(e.response?.data?['message'] ?? 'Failed to sync with backend server.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to sync with backend server.',
+      );
     } catch (e) {
       throw Exception('Connection error: $e');
     }
@@ -142,26 +145,29 @@ class AuthNotifier extends Notifier<AuthState> {
       UserCredential userCredential;
       if (kIsWeb) {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+        userCredential = await FirebaseAuth.instance.signInWithPopup(
+          googleProvider,
+        );
       } else {
         // v7: authenticate() triggers the sign-in dialog
-        final GoogleSignInAccount googleUser =
-            await GoogleSignIn.instance.authenticate();
+        final GoogleSignInAccount googleUser = await GoogleSignIn.instance
+            .authenticate();
 
         // v7: idToken is on .authentication, accessToken requires a separate
         // authorization step via .authorizationClient.authorizeScopes()
         final String? idToken = googleUser.authentication.idToken;
-        final GoogleSignInClientAuthorization clientAuth =
-            await googleUser.authorizationClient
-                .authorizeScopes(['email', 'profile']);
+        final GoogleSignInClientAuthorization clientAuth = await googleUser
+            .authorizationClient
+            .authorizeScopes(['email', 'profile']);
 
         final AuthCredential credential = GoogleAuthProvider.credential(
           idToken: idToken,
           accessToken: clientAuth.accessToken,
         );
 
-        userCredential =
-            await FirebaseAuth.instance.signInWithCredential(credential);
+        userCredential = await FirebaseAuth.instance.signInWithCredential(
+          credential,
+        );
       }
 
       final firebaseUser = userCredential.user;
@@ -189,10 +195,8 @@ class AuthNotifier extends Notifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true);
     try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       final firebaseUser = credential.user;
       if (firebaseUser == null) {
@@ -249,4 +253,6 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
