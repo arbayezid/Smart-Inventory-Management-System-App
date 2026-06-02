@@ -16,14 +16,22 @@ class AuthState {
 
   bool get isAuthenticated => token != null && user != null;
 
-  AuthState copyWith({UserModel? user, String? token, bool? isLoading}) {
+  AuthState copyWith({
+    Object? user = _sentinel,
+    Object? token = _sentinel,
+    bool? isLoading,
+  }) {
     return AuthState(
-      user: user ?? this.user,
-      token: token ?? this.token,
+      user: user == _sentinel ? this.user : user as UserModel?,
+      token: token == _sentinel ? this.token : token as String?,
       isLoading: isLoading ?? this.isLoading,
     );
   }
 }
+
+/// Sentinel value used by [AuthState.copyWith] to distinguish between
+/// "not provided" and an explicit `null` being passed for `user`/`token`.
+const Object _sentinel = Object();
 
 class AuthNotifier extends Notifier<AuthState> {
   final storage = const FlutterSecureStorage();
@@ -55,7 +63,11 @@ class AuthNotifier extends Notifier<AuthState> {
       }
     }
 
-    state = AuthState(isLoading: false);
+    // Guard: if a concurrent login already set an authenticated state while
+    // we were reading storage, do not overwrite it with an unauthenticated one.
+    if (!state.isAuthenticated) {
+      state = AuthState(isLoading: false);
+    }
   }
 
   Future<void> _syncWithBackend({
@@ -97,7 +109,7 @@ class AuthNotifier extends Notifier<AuthState> {
       try {
         await FirebaseAuth.instance.signOut();
         if (!kIsWeb) {
-          await GoogleSignIn.instance.signOut();
+          await GoogleSignIn().signOut();
         }
       } catch (_) {}
 
@@ -149,20 +161,19 @@ class AuthNotifier extends Notifier<AuthState> {
           googleProvider,
         );
       } else {
-        // v7: authenticate() triggers the sign-in dialog
-        final GoogleSignInAccount googleUser = await GoogleSignIn.instance
-            .authenticate();
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          serverClientId: '361423125686-i0u5qsej71uhgvdpasagd0ts9uhkk3q0.apps.googleusercontent.com',
+        );
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        if (googleUser == null) {
+          state = state.copyWith(isLoading: false);
+          return;
+        }
 
-        // v7: idToken is on .authentication, accessToken requires a separate
-        // authorization step via .authorizationClient.authorizeScopes()
-        final String? idToken = googleUser.authentication.idToken;
-        final GoogleSignInClientAuthorization clientAuth = await googleUser
-            .authorizationClient
-            .authorizeScopes(['email', 'profile']);
-
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
         final AuthCredential credential = GoogleAuthProvider.credential(
-          idToken: idToken,
-          accessToken: clientAuth.accessToken,
+          idToken: googleAuth.idToken,
+          accessToken: googleAuth.accessToken,
         );
 
         userCredential = await FirebaseAuth.instance.signInWithCredential(
@@ -244,7 +255,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       await FirebaseAuth.instance.signOut();
       if (!kIsWeb) {
-        await GoogleSignIn.instance.signOut();
+        await GoogleSignIn().signOut();
       }
     } catch (_) {}
     await storage.delete(key: 'token');

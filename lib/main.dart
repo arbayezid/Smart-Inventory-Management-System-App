@@ -28,14 +28,7 @@ void main() async {
     debugPrint("Firebase initialization unexpected error: $e");
   }
 
-  // Initialize Google Sign-In (native platforms only - web uses popup)
-  if (!kIsWeb) {
-    try {
-      await GoogleSignIn.instance.initialize();
-    } catch (e) {
-      debugPrint("Google Sign-In initialization failed: $e");
-    }
-  }
+
 
   runApp(const ProviderScope(child: MyApp()));
 }
