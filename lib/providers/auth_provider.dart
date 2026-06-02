@@ -27,7 +27,6 @@ class AuthState {
 
 class AuthNotifier extends Notifier<AuthState> {
   final storage = const FlutterSecureStorage();
-  final _googleSignIn = GoogleSignIn();
 
   @override
   AuthState build() {
@@ -97,7 +96,7 @@ class AuthNotifier extends Notifier<AuthState> {
       try {
         await FirebaseAuth.instance.signOut();
         if (!kIsWeb) {
-          await _googleSignIn.signOut();
+          await GoogleSignIn.instance.signOut();
         }
       } catch (_) {}
 
@@ -145,17 +144,20 @@ class AuthNotifier extends Notifier<AuthState> {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
         userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
       } else {
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) {
-          state = state.copyWith(isLoading: false);
-          return; // User cancelled the sign-in flow
-        }
+        // v7: authenticate() triggers the sign-in dialog
+        final GoogleSignInAccount googleUser =
+            await GoogleSignIn.instance.authenticate();
 
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication; // v6: this is a Future
+        // v7: idToken is on .authentication, accessToken requires a separate
+        // authorization step via .authorizationClient.authorizeScopes()
+        final String? idToken = googleUser.authentication.idToken;
+        final GoogleSignInClientAuthorization clientAuth =
+            await googleUser.authorizationClient
+                .authorizeScopes(['email', 'profile']);
+
         final AuthCredential credential = GoogleAuthProvider.credential(
-          idToken: googleAuth.idToken,
-          accessToken: googleAuth.accessToken, // required for Firebase Auth
+          idToken: idToken,
+          accessToken: clientAuth.accessToken,
         );
 
         userCredential =
@@ -238,7 +240,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       await FirebaseAuth.instance.signOut();
       if (!kIsWeb) {
-        await _googleSignIn.signOut();
+        await GoogleSignIn.instance.signOut();
       }
     } catch (_) {}
     await storage.delete(key: 'token');
