@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/dashboard_screen.dart';
+import '../screens/super_admin/super_admin_shell.dart';
 import '../providers/auth_provider.dart';
 
 /// A [ChangeNotifier] that bridges Riverpod's [authProvider] state into a
@@ -30,6 +31,8 @@ class _AuthRouterNotifier extends ChangeNotifier {
     final isLoggedIn = authState.isAuthenticated;
     final isLoggingIn = state.matchedLocation == '/login';
     final isRegistering = state.matchedLocation == '/register';
+    final isSuperAdminRoute = state.matchedLocation == '/super-admin';
+    final isSuperAdmin = authState.user?.role == 'SuperAdmin';
 
     if (!isLoggedIn) {
       // Not logged in: only allow login or register screens.
@@ -37,8 +40,20 @@ class _AuthRouterNotifier extends ChangeNotifier {
       return '/login';
     }
 
-    // Logged in: redirect away from auth screens.
-    if (isLoggingIn || isRegistering) return '/';
+    // Logged in: redirect away from auth screens to the correct dashboard.
+    if (isLoggingIn || isRegistering) {
+      return isSuperAdmin ? '/super-admin' : '/';
+    }
+
+    // Prevent a SuperAdmin from landing on the shop-owner dashboard.
+    if (isSuperAdmin && state.matchedLocation == '/') {
+      return '/super-admin';
+    }
+
+    // Prevent a ShopOwner from accessing the super-admin route.
+    if (!isSuperAdmin && isSuperAdminRoute) {
+      return '/';
+    }
 
     return null;
   }
@@ -61,6 +76,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/super-admin',
+        builder: (context, state) => const SuperAdminShell(),
       ),
     ],
   );
