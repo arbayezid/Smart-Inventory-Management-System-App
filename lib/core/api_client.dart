@@ -6,10 +6,9 @@ import 'package:flutter/foundation.dart';
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      // Use localhost for web, 10.0.2.2 for android emulator
-      baseUrl: kIsWeb
-          ? 'https://smart-inventory-management-system-backend.onrender.com/api'
-          : 'http://10.0.2.2:5000/api',
+      // Points to Render backend so that the mobile app can load live database data just like the website.
+      // Change to 'http://10.0.2.2:5000/api' if testing with a local emulator, or use your computer's local IP (e.g. http://192.168.x.x:5000/api) for local physical device testing.
+      baseUrl: 'https://smart-inventory-management-system-backend.onrender.com/api',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ),
