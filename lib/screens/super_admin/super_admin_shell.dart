@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/shop.dart';
 import '../../providers/auth_provider.dart';
+import '../profile_screen.dart'; // Added Profile Screen
 import 'sa_dashboard_screen.dart';
 import 'sa_all_shops_screen.dart';
 
@@ -49,9 +50,9 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
         activeIcon: Icons.trending_up,
         label: 'Revenue'),
     _NavItem(
-        icon: Icons.settings_outlined,
-        activeIcon: Icons.settings,
-        label: 'Settings'),
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
+        label: 'Profile'),
   ];
 
   Widget _buildPage() {
@@ -75,12 +76,9 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           color: Colors.purple,
         );
       case 3:
-        return _PlaceholderScreen(
-          icon: Icons.settings,
-          title: 'Global Settings',
-          subtitle: 'Platform configuration\ncoming soon.',
-          color: Colors.teal,
-        );
+        // We handle this in onDestinationSelected, so this should rarely be built.
+        // But if it is, show an empty box.
+        return const SizedBox.shrink();
       default:
         return const SizedBox.shrink();
     }
@@ -269,12 +267,15 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
                   },
                 ),
                 _DrawerTile(
-                  icon: Icons.settings_outlined,
-                  label: 'Global Settings',
-                  isSelected: _navIndex == 3,
+                  icon: Icons.person_outline,
+                  label: 'Profile',
+                  isSelected: false,
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _navIndex = 3);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    );
                   },
                 ),
               ],
@@ -302,7 +303,16 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
   NavigationBar _buildBottomNav() {
     return NavigationBar(
       selectedIndex: _navIndex,
-      onDestinationSelected: (i) => setState(() => _navIndex = i),
+      onDestinationSelected: (i) {
+        if (i == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          );
+        } else {
+          setState(() => _navIndex = i);
+        }
+      },
       backgroundColor: Colors.white,
       elevation: 8,
       indicatorColor: const Color(0xFF1565C0).withValues(alpha: 0.12),

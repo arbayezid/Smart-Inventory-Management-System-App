@@ -29,13 +29,13 @@ class DefaultFirebaseOptions {
     appId: '1:361423125686:web:e8b7cde835aa1907117a17',
   );
 
-  // Android: add google-services.json and update these values
+  // Android: values sourced from google-services.json
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD6hfmsp_2aIrVfbTRAtKOSeW2lpfXFVGs',
+    apiKey: 'AIzaSyAnjNCvd30WgLttoNeNOPC3o2GtpBtVb2o', // Android-specific key from google-services.json
     appId: '1:361423125686:android:35030bb7f194f94b117a17',
     messagingSenderId: '361423125686',
     projectId: 'smart-inventory-cf61a',
-    storageBucket: 'smart-inventory-cf61a.appspot.com',
+    storageBucket: 'smart-inventory-cf61a.firebasestorage.app',
   );
 
   // iOS: add GoogleService-Info.plist and update these values
